@@ -218,6 +218,31 @@ pub enum AutoSubmitKey {
     CmdEnter,
 }
 
+/// Key pressed before inserting text to open an app's input field
+/// (e.g. a game's chat box).
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum OpenInputFieldKey {
+    #[default]
+    Enter,
+    T,
+    Y,
+    Slash,
+}
+
+/// How the transcription's capitalization is adjusted before it is inserted.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum CapitalizationMode {
+    /// Leave the text as the model produced it.
+    #[default]
+    Default,
+    /// Lowercase the first letter of each sentence; keep other capitals.
+    NoSentenceCaps,
+    /// Lowercase everything.
+    Lowercase,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum RecordingRetentionPeriod {
@@ -480,6 +505,18 @@ pub struct AppSettings {
     pub auto_submit: bool,
     #[serde(default)]
     pub auto_submit_key: AutoSubmitKey,
+    #[serde(default)]
+    pub open_input_field: bool,
+    #[serde(default)]
+    pub open_input_field_key: OpenInputFieldKey,
+    #[serde(default = "default_open_input_field_delay_ms")]
+    pub open_input_field_delay_ms: u64,
+    #[serde(default)]
+    pub open_input_field_clear: bool,
+    #[serde(default)]
+    pub capitalization: CapitalizationMode,
+    #[serde(default = "default_slash_command_digits")]
+    pub slash_command_digits: bool,
     #[serde(default = "default_post_process_enabled")]
     pub post_process_enabled: bool,
     #[serde(default = "default_post_process_provider_id")]
@@ -675,6 +712,14 @@ fn default_paste_delay_ms() -> u64 {
 
 fn default_paste_delay_after_ms() -> u64 {
     60
+}
+
+fn default_slash_command_digits() -> bool {
+    true
+}
+
+fn default_open_input_field_delay_ms() -> u64 {
+    0
 }
 
 fn default_auto_submit() -> bool {
@@ -988,6 +1033,22 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: default_post_process_shortcut.to_string(),
         },
     );
+    #[cfg(target_os = "macos")]
+    let default_slash_command_shortcut = "option+control+space";
+    #[cfg(not(target_os = "macos"))]
+    let default_slash_command_shortcut = "ctrl+alt+space";
+
+    bindings.insert(
+        "transcribe_slash_command".to_string(),
+        ShortcutBinding {
+            id: "transcribe_slash_command".to_string(),
+            name: "Slash Command".to_string(),
+            description: "Opens chat with / and inserts what you say as a slash command."
+                .to_string(),
+            default_binding: default_slash_command_shortcut.to_string(),
+            current_binding: default_slash_command_shortcut.to_string(),
+        },
+    );
     bindings.insert(
         "cancel".to_string(),
         ShortcutBinding {
@@ -1034,6 +1095,12 @@ pub fn get_default_settings() -> AppSettings {
         clipboard_handling: ClipboardHandling::default(),
         auto_submit: default_auto_submit(),
         auto_submit_key: AutoSubmitKey::default(),
+        open_input_field: false,
+        open_input_field_key: OpenInputFieldKey::default(),
+        open_input_field_delay_ms: default_open_input_field_delay_ms(),
+        open_input_field_clear: false,
+        capitalization: CapitalizationMode::default(),
+        slash_command_digits: default_slash_command_digits(),
         post_process_enabled: default_post_process_enabled(),
         post_process_provider_id: default_post_process_provider_id(),
         post_process_providers: default_post_process_providers(),

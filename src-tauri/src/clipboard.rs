@@ -1,7 +1,10 @@
 use crate::input::{self, EnigoState};
 #[cfg(target_os = "linux")]
 use crate::settings::TypingTool;
-use crate::settings::{get_settings, AutoSubmitKey, ClipboardHandling, PasteMethod};
+use crate::settings::{
+    get_settings, AutoSubmitKey, CapitalizationMode, ClipboardHandling, OpenInputFieldKey,
+    PasteMethod,
+};
 use enigo::{Direction, Enigo, Key, Keyboard};
 use log::info;
 use std::process::Command;
@@ -60,11 +63,11 @@ fn write_text_to_clipboard(app_handle: &AppHandle, text: &str) -> Result<(), Str
         .map_err(|e| format!("Failed to write to clipboard: {}", e))
 }
 
-fn finish_clipboard_paste(
-    paste_result: Result<(), String>,
+fn finish_clipboard_paste<T>(
+    paste_result: Result<T, String>,
     paste_delay_after_ms: u64,
     restore_clipboard: impl FnOnce(),
-) -> Result<(), String> {
+) -> Result<T, String> {
     std::thread::sleep(Duration::from_millis(paste_delay_after_ms));
     restore_clipboard();
     paste_result
@@ -77,7 +80,9 @@ fn paste_via_clipboard(
     paste_method: &PasteMethod,
     paste_delay_ms: u64,
     paste_delay_after_ms: u64,
-) -> Result<(), String> {
+    open_sequence: Option<OpenSequence>,
+    submit_key: Option<AutoSubmitKey>,
+) -> Result<bool, String> {
     let clipboard = app_handle.clipboard();
     let saved_text = clipboard.read_text().ok().filter(|t| !t.is_empty());
     // Only probe for an image when there is no text to restore. Text is by far the
@@ -96,7 +101,31 @@ fn paste_via_clipboard(
 
     // Capture key injection errors so the original clipboard is restored before
     // propagating them to the caller.
-    let paste_result = (|| -> Result<(), String> {
+    let paste_result = (|| -> Result<bool, String> {
+        // Game mode: open the chat box, clear it, paste and submit in one
+        // uninterrupted burst so stray key presses have no gap to land in.
+        if let Some(open_sequence) = open_sequence {
+            let paste_method = *paste_method;
+            return with_enigo(app_handle, move |enigo| {
+                open_sequence.send(enigo)?;
+                match paste_method {
+                    PasteMethod::CtrlV => input::send_paste_ctrl_v(enigo, 100)?,
+                    PasteMethod::CtrlShiftV => input::send_paste_ctrl_shift_v(enigo, 100)?,
+                    PasteMethod::ShiftInsert => input::send_paste_shift_insert(enigo, 100)?,
+                    _ => return Err("Invalid paste method for clipboard paste".into()),
+                }
+                match submit_key {
+                    Some(key) => {
+                        if let Err(error) = send_return_key(enigo, key) {
+                            log::warn!("Paste succeeded, but auto-submit failed: {error}");
+                        }
+                        Ok(true)
+                    }
+                    None => Ok(false),
+                }
+            });
+        }
+
         // Send paste key combo
         #[cfg(target_os = "linux")]
         let key_combo_sent = try_send_key_combo_linux(paste_method)?;
@@ -117,7 +146,7 @@ fn paste_via_clipboard(
             })?;
         }
 
-        Ok(())
+        Ok(false)
     })();
 
     finish_clipboard_paste(paste_result, paste_delay_after_ms, || {
@@ -813,6 +842,254 @@ pub(crate) fn send_return_key(enigo: &mut Enigo, key_type: AutoSubmitKey) -> Res
     Ok(())
 }
 
+/// Which text-insertion flavour a shortcut asked for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PasteMode {
+    /// Insert the transcription as-is (after the usual output settings).
+    Normal,
+    /// Open chat with `/` and insert the transcription as a slash command
+    /// (e.g. saying "dance" sends `/dance`).
+    SlashCommand,
+}
+
+/// Maps the configured "open input field" key to a physical key. Windows and
+/// macOS use virtual key codes / ANSI keycodes because many games read raw key
+/// events and ignore Unicode text injection.
+fn open_input_field_key(key: OpenInputFieldKey) -> Key {
+    match key {
+        OpenInputFieldKey::Enter => Key::Return,
+        #[cfg(target_os = "windows")]
+        OpenInputFieldKey::T => Key::Other(0x54), // VK_T
+        #[cfg(target_os = "windows")]
+        OpenInputFieldKey::Y => Key::Other(0x59), // VK_Y
+        #[cfg(target_os = "windows")]
+        OpenInputFieldKey::Slash => Key::Other(0xBF), // VK_OEM_2 ('/')
+        #[cfg(target_os = "macos")]
+        OpenInputFieldKey::T => Key::Other(17), // kVK_ANSI_T
+        #[cfg(target_os = "macos")]
+        OpenInputFieldKey::Y => Key::Other(16), // kVK_ANSI_Y
+        #[cfg(target_os = "macos")]
+        OpenInputFieldKey::Slash => Key::Other(44), // kVK_ANSI_Slash
+        #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+        OpenInputFieldKey::T => Key::Unicode('t'),
+        #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+        OpenInputFieldKey::Y => Key::Unicode('y'),
+        #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+        OpenInputFieldKey::Slash => Key::Unicode('/'),
+    }
+}
+
+/// The keys sent right before the text: open the input field, wait for it to
+/// appear, then optionally select everything already in it so the paste
+/// replaces any stray characters.
+#[derive(Debug, Clone, Copy)]
+struct OpenSequence {
+    key: OpenInputFieldKey,
+    delay_ms: u64,
+    clear: bool,
+}
+
+impl OpenSequence {
+    fn from_settings(
+        settings: &crate::settings::AppSettings,
+        mode: PasteMode,
+    ) -> Option<OpenSequence> {
+        if settings.paste_method == PasteMethod::None {
+            return None;
+        }
+        let key = match mode {
+            PasteMode::SlashCommand => OpenInputFieldKey::Slash,
+            PasteMode::Normal if settings.open_input_field => settings.open_input_field_key,
+            PasteMode::Normal => return None,
+        };
+        Some(OpenSequence {
+            key,
+            delay_ms: settings.open_input_field_delay_ms.min(300),
+            clear: settings.open_input_field_clear,
+        })
+    }
+
+    fn send(&self, enigo: &mut Enigo) -> Result<(), String> {
+        let key = open_input_field_key(self.key);
+        enigo
+            .key(key, Direction::Press)
+            .map_err(|e| format!("Failed to press open input field key: {}", e))?;
+        // Brief hold so games that poll keyboard state each frame still see it.
+        std::thread::sleep(Duration::from_millis(30));
+        enigo
+            .key(key, Direction::Release)
+            .map_err(|e| format!("Failed to release open input field key: {}", e))?;
+
+        if self.delay_ms > 0 {
+            std::thread::sleep(Duration::from_millis(self.delay_ms));
+        }
+
+        if self.clear {
+            send_select_to_start(enigo)?;
+        }
+        Ok(())
+    }
+}
+
+/// Sends Shift+Home to select from the cursor back to the start of the line.
+/// Shift+Home is used instead of Ctrl+A because the synthetic release of a
+/// letter key (A) makes games think a held movement key was let go, stopping
+/// e.g. a strafe; Home is practically never bound in games.
+fn send_select_to_start(enigo: &mut Enigo) -> Result<(), String> {
+    enigo
+        .key(Key::Shift, Direction::Press)
+        .map_err(|e| format!("Failed to press Shift: {}", e))?;
+    let click = enigo
+        .key(Key::Home, Direction::Click)
+        .map_err(|e| format!("Failed to click Home: {}", e));
+    std::thread::sleep(Duration::from_millis(30));
+    enigo
+        .key(Key::Shift, Direction::Release)
+        .map_err(|e| format!("Failed to release Shift: {}", e))?;
+    click
+}
+
+/// Applies the capitalization setting to normal transcriptions.
+fn apply_capitalization(text: &str, mode: CapitalizationMode) -> String {
+    match mode {
+        CapitalizationMode::Default => text.to_string(),
+        CapitalizationMode::Lowercase => text.to_lowercase(),
+        CapitalizationMode::NoSentenceCaps => {
+            let mut out = String::with_capacity(text.len());
+            let mut sentence_start = true;
+            for c in text.chars() {
+                if sentence_start && c.is_alphabetic() {
+                    out.extend(c.to_lowercase());
+                    sentence_start = false;
+                } else {
+                    if matches!(c, '.' | '!' | '?') {
+                        sentence_start = true;
+                    } else if !c.is_whitespace() && !c.is_ascii_punctuation() {
+                        sentence_start = false;
+                    }
+                    out.push(c);
+                }
+            }
+            out
+        }
+    }
+}
+
+/// Turns a transcription like " Dance." into a slash command body ("dance").
+/// `include_slash` adds the leading `/`, needed when the field was cleared
+/// after `/` opened it. `digits` turns a spelled-out number at the start into
+/// digits, so saying "two LFG tank" gives `/2 lfg tank` (WoW's channel
+/// commands).
+fn slash_command_text(text: &str, include_slash: bool, digits: bool) -> String {
+    let lowered = text
+        .trim()
+        .trim_end_matches(|c: char| is_separator_punctuation(c) || c.is_whitespace())
+        .to_lowercase();
+    let command = fix_command_word(strip_slash_prefix(&lowered).unwrap_or(&lowered), digits);
+    if include_slash {
+        format!("/{}", command)
+    } else {
+        command
+    }
+}
+
+/// If `text` starts like a slash command — a literal `/`, or the spoken word
+/// "slash" — returns what follows it.
+fn strip_slash_prefix(text: &str) -> Option<&str> {
+    let text = text.trim_start();
+    if let Some(rest) = text.strip_prefix('/') {
+        return Some(rest.trim_start());
+    }
+    let word_end = text
+        .find(|c: char| !c.is_alphanumeric())
+        .unwrap_or(text.len());
+    if text[..word_end].eq_ignore_ascii_case("slash") {
+        return Some(text[word_end..].trim_start_matches(|c: char| !c.is_alphanumeric()));
+    }
+    None
+}
+
+/// Cleans up the command word at the start of a slash command body: lowercase
+/// it, convert a spoken number to digits, and drop any punctuation the speech
+/// model attached, so "Yell, hello everyone" gives `yell hello everyone`
+/// instead of the broken `yell, hello everyone`. The rest of the message keeps
+/// its punctuation.
+fn fix_command_word(body: &str, digits: bool) -> String {
+    let body = body.trim_start();
+    let word_end = body
+        .find(|c: char| !c.is_alphanumeric())
+        .unwrap_or(body.len());
+    let mut word = body[..word_end].to_lowercase();
+    if digits {
+        word = number_word_to_digits(&word).unwrap_or(word);
+    }
+    // Skip punctuation (ASCII or not) and spaces between the command and the
+    // message, but keep e.g. an opening quote that starts the message.
+    let rest = body[word_end..]
+        .trim_start_matches(|c: char| c.is_whitespace() || is_separator_punctuation(c));
+    if rest.is_empty() {
+        word
+    } else {
+        format!("{} {}", word, rest)
+    }
+}
+
+/// Punctuation a speech model may put right after a command word.
+fn is_separator_punctuation(c: char) -> bool {
+    matches!(
+        c,
+        ',' | '.'
+            | '!'
+            | '?'
+            | ';'
+            | ':'
+            | '-'
+            | '\u{2026}'
+            | '\u{2013}'
+            | '\u{2014}'
+            | '\u{3001}'
+            | '\u{FF0C}'
+            | '\u{3002}'
+    )
+}
+
+/// Normal transcriptions that happen to start with "/" or the spoken word
+/// "slash" get the same command-word cleanup, so "/yell, hi" or "Slash yell.
+/// Hi" become `/yell hi`.
+fn fix_spoken_slash_command(text: &str, digits: bool) -> Option<String> {
+    strip_slash_prefix(text).map(|body| format!("/{}", fix_command_word(body, digits)))
+}
+
+/// Maps a spelled-out number (or a common mishearing of one) to its digits:
+/// "one" -> "1", "twelve" -> "12", "to" -> "2".
+fn number_word_to_digits(word: &str) -> Option<String> {
+    let digit = match word {
+        "zero" => "0",
+        "one" | "won" => "1",
+        "two" | "to" | "too" => "2",
+        "three" => "3",
+        "four" | "for" | "fore" => "4",
+        "five" => "5",
+        "six" => "6",
+        "seven" => "7",
+        "eight" | "ate" => "8",
+        "nine" => "9",
+        "ten" => "10",
+        "eleven" => "11",
+        "twelve" => "12",
+        "thirteen" => "13",
+        "fourteen" => "14",
+        "fifteen" => "15",
+        "sixteen" => "16",
+        "seventeen" => "17",
+        "eighteen" => "18",
+        "nineteen" => "19",
+        "twenty" => "20",
+        _ => return None,
+    };
+    Some(digit.to_string())
+}
+
 fn should_send_auto_submit(auto_submit: bool, paste_method: PasteMethod) -> bool {
     auto_submit && paste_method != PasteMethod::None
 }
@@ -820,23 +1097,53 @@ fn should_send_auto_submit(auto_submit: bool, paste_method: PasteMethod) -> bool
 /// Pastes `text` into the focused app. Call from a worker thread, never the main
 /// thread: it sleeps between steps (input injection hops via `with_enigo`).
 pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
+    paste_with_mode(text, app_handle, PasteMode::Normal)
+}
+
+/// Like [`paste`], but lets the caller pick a [`PasteMode`].
+pub fn paste_with_mode(text: String, app_handle: AppHandle, mode: PasteMode) -> Result<(), String> {
     let _paste = PASTE_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
     let settings = get_settings(&app_handle);
     let paste_method = settings.paste_method;
     let paste_delay_ms = settings.paste_delay_ms;
     let paste_delay_after_ms = settings.paste_delay_after_ms;
 
-    // Append trailing space if setting is enabled
-    let text = if settings.append_trailing_space {
-        format!("{} ", text)
-    } else {
-        text
+    // Optional "game mode": press a key to open the target's input field
+    // (e.g. a game's chat box) right before the text is inserted.
+    let open_sequence = OpenSequence::from_settings(&settings, mode);
+
+    let text = match mode {
+        PasteMode::SlashCommand => {
+            // When the field is cleared, the `/` that opened it is wiped too,
+            // so it has to be part of the pasted text.
+            let cleared = open_sequence.map(|o| o.clear).unwrap_or(true);
+            slash_command_text(&text, cleared, settings.slash_command_digits)
+        }
+        PasteMode::Normal => {
+            let text = apply_capitalization(&text, settings.capitalization);
+            // In game mode, a spoken "slash yell, hi" (often transcribed as
+            // "/yell, hi") is cleaned up like the slash-command shortcut.
+            let text = if settings.open_input_field {
+                fix_spoken_slash_command(&text, settings.slash_command_digits).unwrap_or(text)
+            } else {
+                text
+            };
+            // Append trailing space if setting is enabled
+            if settings.append_trailing_space {
+                format!("{} ", text)
+            } else {
+                text
+            }
+        }
     };
 
     info!(
-        "Using paste method: {:?}, delay before: {}ms, delay after: {}ms",
-        paste_method, paste_delay_ms, paste_delay_after_ms
+        "Using paste method: {:?}, delay before: {}ms, delay after: {}ms, open sequence: {:?}",
+        paste_method, paste_delay_ms, paste_delay_after_ms, open_sequence
     );
+
+    let send_submit = should_send_auto_submit(settings.auto_submit, paste_method);
+    let mut submitted = false;
 
     // Perform the paste operation
     match paste_method {
@@ -844,6 +1151,12 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
             info!("PasteMethod::None selected - skipping paste action");
         }
         PasteMethod::Direct => {
+            if let Some(open_sequence) = open_sequence {
+                if let Err(error) = with_enigo(&app_handle, move |enigo| open_sequence.send(enigo))
+                {
+                    log::warn!("Failed to open input field: {error}");
+                }
+            }
             paste_direct(
                 &text,
                 &app_handle,
@@ -856,9 +1169,10 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
             // after the target actually reads the transcript, not on a timer.
             // On success it fully handles the paste (including auto-submit and
             // clipboard handling) asynchronously; on failure fall through to
-            // the legacy path untouched.
+            // the legacy path untouched. Game mode always uses the legacy path
+            // so the open/clear/paste/submit keys go out back to back.
             #[cfg(any(target_os = "macos", target_os = "windows"))]
-            if settings.reliable_paste {
+            if settings.reliable_paste && open_sequence.is_none() {
                 // Runs entirely on the main thread, as it requires.
                 let (text, app) = (text.clone(), app_handle.clone());
                 let (auto_submit, auto_submit_key, clipboard_handling) = (
@@ -884,13 +1198,16 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
                     }
                 }
             }
-            paste_via_clipboard(
+            let submit_key = send_submit.then_some(settings.auto_submit_key);
+            submitted = paste_via_clipboard(
                 &text,
                 &app_handle,
                 &paste_method,
                 paste_delay_ms,
                 paste_delay_after_ms,
-            )?
+                open_sequence,
+                submit_key,
+            )?;
         }
         PasteMethod::ExternalScript => {
             let script_path = settings
@@ -898,12 +1215,21 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
                 .as_ref()
                 .filter(|p| !p.is_empty())
                 .ok_or("External script path is not configured")?;
+            if let Some(open_sequence) = open_sequence {
+                if let Err(error) = with_enigo(&app_handle, move |enigo| open_sequence.send(enigo))
+                {
+                    log::warn!("Failed to open input field: {error}");
+                }
+            }
             paste_via_external_script(&text, script_path)?;
         }
     }
 
-    if should_send_auto_submit(settings.auto_submit, paste_method) {
-        std::thread::sleep(Duration::from_millis(50));
+    if send_submit && !submitted {
+        // In game mode, submit immediately so stray keys can't be appended.
+        if open_sequence.is_none() {
+            std::thread::sleep(Duration::from_millis(50));
+        }
         let auto_submit_key = settings.auto_submit_key;
         if let Err(error) = with_enigo(&app_handle, move |enigo| {
             send_return_key(enigo, auto_submit_key)
@@ -923,6 +1249,92 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn slash_command_text_strips_punctuation_and_case() {
+        assert_eq!(slash_command_text(" Dance.", true, true), "/dance");
+        assert_eq!(slash_command_text("LOL!", false, true), "lol");
+        assert_eq!(slash_command_text("/wave", true, true), "/wave");
+    }
+
+    #[test]
+    fn slash_command_numbers_become_digits() {
+        assert_eq!(slash_command_text("One.", true, true), "/1");
+        assert_eq!(
+            slash_command_text("Two, LFG tank.", true, true),
+            "/2 lfg tank"
+        );
+        assert_eq!(
+            slash_command_text("To WTS one sword", true, true),
+            "/2 wts one sword"
+        );
+        assert_eq!(slash_command_text("Twelve", false, true), "12");
+        assert_eq!(slash_command_text("One.", true, false), "/one");
+        assert_eq!(slash_command_text("Dance", true, true), "/dance");
+    }
+
+    #[test]
+    fn slash_command_word_never_keeps_punctuation() {
+        assert_eq!(
+            slash_command_text("Yell, hello everyone!", true, true),
+            "/yell hello everyone"
+        );
+        assert_eq!(
+            slash_command_text("Yell. Watch out, adds incoming.", true, false),
+            "/yell watch out, adds incoming"
+        );
+        assert_eq!(
+            slash_command_text("Guild: anyone up?", true, true),
+            "/guild anyone up"
+        );
+        assert_eq!(
+            slash_command_text("Yell\u{2026} hi", true, true),
+            "/yell hi"
+        );
+        assert_eq!(
+            slash_command_text("Yell \u{2014} hi", true, true),
+            "/yell hi"
+        );
+        assert_eq!(
+            slash_command_text("Yell, \"hi\"", true, true),
+            "/yell \"hi\""
+        );
+    }
+
+    #[test]
+    fn spoken_slash_commands_in_normal_mode() {
+        assert_eq!(
+            fix_spoken_slash_command("/Yell, Hello everyone.", true).as_deref(),
+            Some("/yell Hello everyone.")
+        );
+        assert_eq!(
+            fix_spoken_slash_command("Slash yell. Hi", true).as_deref(),
+            Some("/yell Hi")
+        );
+        assert_eq!(
+            fix_spoken_slash_command("Slash two, LFG tank", true).as_deref(),
+            Some("/2 LFG tank")
+        );
+        assert_eq!(fix_spoken_slash_command("Hello there.", true), None);
+        assert_eq!(fix_spoken_slash_command("Slashing through", true), None);
+    }
+
+    #[test]
+    fn capitalization_modes() {
+        let text = "Hello there. I saw Bob! Ok?";
+        assert_eq!(
+            apply_capitalization(text, CapitalizationMode::Default),
+            text
+        );
+        assert_eq!(
+            apply_capitalization(text, CapitalizationMode::NoSentenceCaps),
+            "hello there. i saw Bob! ok?"
+        );
+        assert_eq!(
+            apply_capitalization(text, CapitalizationMode::Lowercase),
+            "hello there. i saw bob! ok?"
+        );
+    }
     use std::cell::Cell;
 
     #[cfg(target_os = "linux")]
@@ -1042,7 +1454,7 @@ e.g. 28:1 28:0 means pressing on the Enter button on a standard US keyboard.
     #[test]
     fn clipboard_is_restored_before_key_injection_error_is_returned() {
         let restored = Cell::new(false);
-        let result = finish_clipboard_paste(Err("input failed".into()), 0, || {
+        let result = finish_clipboard_paste::<()>(Err("input failed".into()), 0, || {
             restored.set(true);
         });
 

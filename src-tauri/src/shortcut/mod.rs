@@ -22,10 +22,10 @@ use tauri::{AppHandle, Emitter, Manager};
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 use crate::settings::APPLE_INTELLIGENCE_DEFAULT_MODEL_ID;
 use crate::settings::{
-    self, get_settings, AutoSubmitKey, ChineseScript, ClipboardHandling, KeyboardImplementation,
-    LLMPrompt, LanguageDetectionMode, OverlayPosition, OverlayStyle, PasteMethod,
-    ShortcutActivation, ShortcutBinding, SoundTheme, Theme, TypingTool, VadBackend,
-    APPLE_INTELLIGENCE_PROVIDER_ID,
+    self, get_settings, AutoSubmitKey, CapitalizationMode, ChineseScript, ClipboardHandling,
+    KeyboardImplementation, LLMPrompt, LanguageDetectionMode, OpenInputFieldKey, OverlayPosition,
+    OverlayStyle, PasteMethod, ShortcutActivation, ShortcutBinding, SoundTheme, Theme, TypingTool,
+    VadBackend, APPLE_INTELLIGENCE_PROVIDER_ID,
 };
 use crate::tray;
 
@@ -314,6 +314,9 @@ pub fn resume_all_shortcuts(app: &AppHandle) {
         if id == "transcribe_with_post_process" && !settings.post_process_enabled {
             continue;
         }
+        if id == "transcribe_slash_command" && !settings.open_input_field {
+            continue;
+        }
         if let Err(e) = register_shortcut(app, binding.clone()) {
             debug!("resume_all_shortcuts: could not register '{}': {}", id, e);
         }
@@ -508,6 +511,9 @@ fn register_all_shortcuts_for_implementation(
 
         // Skip post-processing shortcut when the feature is disabled
         if id == "transcribe_with_post_process" && !current_settings.post_process_enabled {
+            continue;
+        }
+        if id == "transcribe_slash_command" && !current_settings.open_input_field {
             continue;
         }
 
@@ -1101,6 +1107,95 @@ pub fn change_auto_submit_key_setting(app: AppHandle, key: String) -> Result<(),
         }
     };
     settings.auto_submit_key = parsed;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_open_input_field_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.open_input_field = enabled;
+    settings::write_settings(&app, settings.clone());
+
+    // The slash-command shortcut only exists while Open Input Field is on.
+    if let Some(binding) = settings.bindings.get("transcribe_slash_command").cloned() {
+        if enabled {
+            let _ = register_shortcut(&app, binding);
+        } else {
+            let _ = unregister_shortcut(&app, binding);
+        }
+    }
+
+    crate::secure_input::reconcile_fallback(&app);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_open_input_field_clear_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.open_input_field_clear = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_slash_command_digits_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.slash_command_digits = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_capitalization_setting(app: AppHandle, mode: String) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.capitalization = match mode.as_str() {
+        "default" => CapitalizationMode::Default,
+        "no_sentence_caps" => CapitalizationMode::NoSentenceCaps,
+        "lowercase" => CapitalizationMode::Lowercase,
+        other => {
+            warn!(
+                "Invalid capitalization mode '{}', defaulting to default",
+                other
+            );
+            CapitalizationMode::Default
+        }
+    };
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_open_input_field_key_setting(app: AppHandle, key: String) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    let parsed = match key.as_str() {
+        "enter" => OpenInputFieldKey::Enter,
+        "t" => OpenInputFieldKey::T,
+        "y" => OpenInputFieldKey::Y,
+        "slash" => OpenInputFieldKey::Slash,
+        other => {
+            warn!(
+                "Invalid open input field key '{}', defaulting to enter",
+                other
+            );
+            OpenInputFieldKey::Enter
+        }
+    };
+    settings.open_input_field_key = parsed;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_open_input_field_delay_ms_setting(app: AppHandle, ms: u64) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.open_input_field_delay_ms = ms.min(300);
     settings::write_settings(&app, settings);
     Ok(())
 }

@@ -107,6 +107,7 @@ pub trait ShortcutAction: Send + Sync {
 // Transcribe Action
 struct TranscribeAction {
     post_process: bool,
+    paste_mode: utils::PasteMode,
 }
 
 /// Field name for structured output JSON schema
@@ -692,6 +693,7 @@ impl ShortcutAction for TranscribeAction {
 
         let binding_id = binding_id.to_string(); // Clone binding_id for the async task
         let post_process = self.post_process;
+        let paste_mode = self.paste_mode;
         let cancel_generation = rm.cancel_generation();
 
         tauri::async_runtime::spawn(async move {
@@ -878,7 +880,11 @@ impl ShortcutAction for TranscribeAction {
                                         let owns_ui =
                                             || RECORDING_SESSION.load(Ordering::SeqCst) == session;
                                         let (outcome, notice) =
-                                            match utils::paste(final_text, ah_clone.clone()) {
+                                            match utils::paste_with_mode(
+                                                final_text,
+                                                ah_clone.clone(),
+                                                paste_mode,
+                                            ) {
                                                 Ok(()) => {
                                                     debug!(
                                                         "Text pasted successfully in {:?}",
@@ -1050,11 +1056,22 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         "transcribe".to_string(),
         Arc::new(TranscribeAction {
             post_process: false,
+            paste_mode: utils::PasteMode::Normal,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
         "transcribe_with_post_process".to_string(),
-        Arc::new(TranscribeAction { post_process: true }) as Arc<dyn ShortcutAction>,
+        Arc::new(TranscribeAction {
+            post_process: true,
+            paste_mode: utils::PasteMode::Normal,
+        }) as Arc<dyn ShortcutAction>,
+    );
+    map.insert(
+        "transcribe_slash_command".to_string(),
+        Arc::new(TranscribeAction {
+            post_process: false,
+            paste_mode: utils::PasteMode::SlashCommand,
+        }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
         "cancel".to_string(),

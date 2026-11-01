@@ -161,6 +161,18 @@ const settingUpdaters: {
   auto_submit: (value) => commands.changeAutoSubmitSetting(value as boolean),
   auto_submit_key: (value) =>
     commands.changeAutoSubmitKeySetting(value as string),
+  open_input_field: (value) =>
+    commands.changeOpenInputFieldSetting(value as boolean),
+  open_input_field_key: (value) =>
+    commands.changeOpenInputFieldKeySetting(value as string),
+  open_input_field_delay_ms: (value) =>
+    commands.changeOpenInputFieldDelayMsSetting(value as number),
+  open_input_field_clear: (value) =>
+    commands.changeOpenInputFieldClearSetting(value as boolean),
+  slash_command_digits: (value) =>
+    commands.changeSlashCommandDigitsSetting(value as boolean),
+  capitalization: (value) =>
+    commands.changeCapitalizationSetting(value as string),
   history_limit: (value) => commands.updateHistoryLimit(value as number),
   post_process_enabled: (value) =>
     commands.changePostProcessEnabledSetting(value as boolean),

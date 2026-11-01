@@ -348,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "Tasto di post-elaborazione",
             "description": "Facoltativo: Un tasto di scelta rapida dedicato che applica sempre la post-elaborazione IA alla trascrizione."
+          },
+          "transcribe_slash_command": {
+            "name": "Slash Command Shortcut",
+            "description": "Opens chat with / and inserts what you say as a lowercase command without punctuation, e.g. say \"dance\" to send /dance."
           }
         },
         "errors": {
@@ -562,6 +566,30 @@
           "cmdEnter": "Cmd+Invio",
           "superEnter": "Super+Invio",
           "ctrlEnter": "Ctrl+Invio"
+        }
+      },
+      "openInputField": {
+        "title": "Open Input Field",
+        "description": "Press a key right before inserting the transcription, to open a chat box in games and similar apps. Pair it with Auto Submit to send the message automatically.",
+        "keyTitle": "Open Input Field Key",
+        "keyDescription": "The key your game or app uses to open its chat box.",
+        "delayTitle": "Input Field Delay",
+        "delayDescription": "How long to wait (in milliseconds) after pressing the key before inserting text. Increase if the start of your message gets cut off or lands outside the chat box.",
+        "digitsTitle": "Slash Command Numbers as Digits",
+        "digitsDescription": "When a slash command starts with a spoken number, type it as digits, so saying \"two LFG tank\" sends /2 lfg tank. Also catches common mishearings like \"to\" or \"for\".",
+        "clearTitle": "Clear Field Before Pasting",
+        "clearDescription": "Press Shift+Home after the field opens to select anything already typed, so your message replaces any stray keys. Shift+Home is used instead of Ctrl+A so held movement keys like A aren't interrupted.",
+        "keys": {
+          "enter": "Invio"
+        }
+      },
+      "capitalization": {
+        "title": "Auto-Capitalization",
+        "description": "Adjust the capital letters the speech model adds. \"Off at sentence starts\" lowercases only the first letter of each sentence; \"All lowercase\" removes every capital.",
+        "options": {
+          "default": "On",
+          "noSentenceCaps": "Off at sentence starts",
+          "lowercase": "All lowercase"
         }
       },
       "translateToEnglish": {

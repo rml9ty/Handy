@@ -25,6 +25,9 @@ pub fn init_shortcuts(app: &AppHandle) {
         if id == "transcribe_with_post_process" && !user_settings.post_process_enabled {
             continue;
         }
+        if id == "transcribe_slash_command" && !user_settings.open_input_field {
+            continue;
+        }
         let binding = user_settings
             .bindings
             .get(&id)

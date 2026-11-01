@@ -483,6 +483,9 @@ mod imp {
                 if id == "transcribe_with_post_process" && !settings.post_process_enabled {
                     continue;
                 }
+                if id == "transcribe_slash_command" && !settings.open_input_field {
+                    continue;
+                }
 
                 match plan_fallback_binding(id, binding) {
                     ShadowPlan::Immune => immune += 1,
