@@ -14,8 +14,10 @@ The fork is kept as a small stack of commits on top of official `main`:
 4. `feat: remove a shortcut with the X button` (empty binding = shortcut off;
    register/unregister skip it in `tauri_impl.rs`, `handy_keys.rs`,
    `secure_input.rs`; `change_binding` accepts ""; UI in `ShortcutInput.tsx`)
-5. `ci(fork): drop macOS from Main Branch Build` (no Apple signing secrets
-   here, so those jobs always failed; `.github/workflows/main-build.yml`)
+5. `ci(fork): Windows-only Main Branch Build` (`.github/workflows/main-build.yml`;
+   macOS removed because there are no Apple signing secrets here, Linux removed
+   because the fork only ships Windows. Keep these lines removed when an
+   upstream sync conflicts here.)
 
 ## Updating to a new official Handy version
 
