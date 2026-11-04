@@ -20,12 +20,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: "macos-26"
-            args: "--target aarch64-apple-darwin"
-            target: "aarch64-apple-darwin"
-          - platform: "macos-latest"
-            args: "--target x86_64-apple-darwin"
-            target: "x86_64-apple-darwin"
+          # Fork: macOS builds removed. This fork has no Apple signing secrets
+          # (the certificate import step fails) and the hosted macOS runners
+          # often never pick the job up.
           - platform: "ubuntu-22.04"
             args: "--bundles deb"
             target: "x86_64-unknown-linux-gnu"
