@@ -1,0 +1,63 @@
+name: "Fork Release (Windows)"
+
+# Builds the Windows installer for this fork and publishes it as a GitHub
+# release, together with latest.json so the in-app updater finds it.
+# Needs one repository secret: TAURI_SIGNING_PRIVATE_KEY (the updater key).
+# Before running, raise "version" in src-tauri/tauri.conf.json, or installed
+# copies won't see the release as an update.
+
+on: workflow_dispatch
+
+jobs:
+  create-release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    outputs:
+      release-id: ${{ steps.create-release.outputs.result }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Get version from tauri.conf.json
+        id: get-version
+        shell: bash
+        run: |
+          VERSION=$(grep -o '"version": "[^"]*"' src-tauri/tauri.conf.json | cut -d'"' -f4)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create release
+        id: create-release
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const tag = `v${{ steps.get-version.outputs.version }}-gamechat`
+            const { data } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tag,
+              target_commitish: context.sha,
+              name: tag,
+              draft: false,
+              prerelease: false,
+              make_latest: "true",
+              body: "Official Handy v${{ steps.get-version.outputs.version }} plus the game chat options. Download the .exe below (not code-signed, so Windows SmartScreen may warn: More info, then Run anyway)."
+            })
+            return data.id
+
+  build-windows:
+    permissions:
+      contents: write
+    needs: create-release
+    uses: ./.github/workflows/build.yml
+    with:
+      platform: "windows-latest"
+      target: "x86_64-pc-windows-msvc"
+      build-args: ""
+      # Only the updater key is set in this fork; code signing is removed
+      # from tauri.conf.json, so no Azure secrets are needed.
+      sign-binaries: true
+      asset-prefix: "handy"
+      upload-artifacts: false
+      release-id: ${{ needs.create-release.outputs.release-id }}
+      no-cache: true
+    secrets: inherit
