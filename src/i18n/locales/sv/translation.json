@@ -335,6 +335,7 @@
         "loading": "Laddar kortkommandon...",
         "none": "Inga kortkommandon konfigurerade",
         "notFound": "Kortkommando hittades inte",
+        "notSet": "Not set",
         "pressKeys": "Tryck på tangenter...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "Uppspelningsposition",
     "resetSetting": "Återställ {{setting}} till standardvärdet",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "Laddar...",
     "delete": "Ta bort",
     "close": "Stäng",

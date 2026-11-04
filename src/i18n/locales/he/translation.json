@@ -335,6 +335,7 @@
         "loading": "טוען קיצורי מקשים...",
         "none": "לא הוגדרו קיצורי מקשים",
         "notFound": "קיצור הדרך לא נמצא",
+        "notSet": "Not set",
         "pressKeys": "לחץ על המקשים...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "מיקום ההשמעה",
     "resetSetting": "איפוס {{setting}} לערך ברירת המחדל",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "טוען...",
     "delete": "מחק",
     "close": "סגור",

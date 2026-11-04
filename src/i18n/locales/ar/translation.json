@@ -335,6 +335,7 @@
         "loading": "جاري تحميل الاختصارات...",
         "none": "لا توجد اختصارات مجهزة",
         "notFound": "الاختصار غير موجود",
+        "notSet": "Not set",
         "pressKeys": "اضغط على المفاتيح...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "موضع التشغيل",
     "resetSetting": "إعادة تعيين {{setting}} إلى القيمة الافتراضية",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "جاري التحميل...",
     "delete": "حذف",
     "close": "إغلاق",

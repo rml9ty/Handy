@@ -87,6 +87,14 @@ pub struct ShortcutBinding {
     pub current_binding: String,
 }
 
+impl ShortcutBinding {
+    /// An empty binding means the user removed the shortcut: it stays off
+    /// (never registered) until they set a new key or reset it.
+    pub fn is_unset(&self) -> bool {
+        self.current_binding.trim().is_empty()
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Type)]
 pub struct LLMPrompt {
     pub id: String,
@@ -1676,6 +1684,14 @@ mod tests {
         // matching legacy mode rather than the new hold-or-toggle default.
         assert_eq!(settings.shortcut_activation, ShortcutActivation::Toggle);
         assert_eq!(settings.transcribe_gpu_device, None);
+    }
+
+    #[test]
+    fn empty_binding_counts_as_removed() {
+        let mut binding = get_default_settings().bindings["transcribe"].clone();
+        assert!(!binding.is_unset());
+        binding.current_binding = "  ".into();
+        assert!(binding.is_unset());
     }
 
     #[test]

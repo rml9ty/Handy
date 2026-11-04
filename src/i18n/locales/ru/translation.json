@@ -335,6 +335,7 @@
         "loading": "Загрузка ярлыков...",
         "none": "Ярлыки не настроены",
         "notFound": "Ярлык не найден",
+        "notSet": "Not set",
         "pressKeys": "Нажимайте клавиши...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "Позиция воспроизведения",
     "resetSetting": "Сбросить «{{setting}}» к значению по умолчанию",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "Загрузка...",
     "delete": "Удалить",
     "close": "Закрывать",

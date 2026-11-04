@@ -171,10 +171,8 @@ pub fn change_binding(
     id: String,
     binding: String,
 ) -> Result<BindingResponse, String> {
-    // Reject empty bindings — every shortcut should have a value
-    if binding.trim().is_empty() {
-        return Err("Binding cannot be empty".to_string());
-    }
+    // An empty binding removes the shortcut (it stays off until set again).
+    let binding = binding.trim().to_string();
 
     let mut settings = settings::get_settings(&app);
 
@@ -228,8 +226,11 @@ pub fn change_binding(
     }
 
     // Validate the new shortcut for the current keyboard implementation
-    if let Err(e) = validate_shortcut_for_implementation(&binding, settings.keyboard_implementation)
-    {
+    if let Err(e) = if binding.is_empty() {
+        Ok(())
+    } else {
+        validate_shortcut_for_implementation(&binding, settings.keyboard_implementation)
+    } {
         warn!("change_binding validation error: {}", e);
         restore_registration(&app, &binding_to_modify);
         return Err(e);
@@ -522,6 +523,11 @@ fn register_all_shortcuts_for_implementation(
             .get(id)
             .cloned()
             .unwrap_or_else(|| default_binding.clone());
+
+        // A removed shortcut stays removed.
+        if binding.is_unset() {
+            continue;
+        }
 
         // Validate the shortcut for the target implementation
         if let Err(e) =

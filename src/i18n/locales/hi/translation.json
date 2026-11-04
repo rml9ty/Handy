@@ -335,6 +335,7 @@
         "loading": "शॉर्टकट लोड हो रहे हैं...",
         "none": "कोई शॉर्टकट सेट नहीं है",
         "notFound": "शॉर्टकट नहीं मिला",
+        "notSet": "Not set",
         "pressKeys": "बटन दबाएं...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "प्लेबैक का स्थान",
     "resetSetting": "{{setting}}: डिफ़ॉल्ट मान पर रीसेट करें",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "लोड हो रहा है...",
     "delete": "हटाएं",
     "close": "बंद करें",

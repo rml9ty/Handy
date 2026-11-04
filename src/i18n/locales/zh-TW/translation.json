@@ -335,6 +335,7 @@
         "loading": "載入快捷鍵中...",
         "none": "未設定快捷鍵",
         "notFound": "未找到快捷鍵",
+        "notSet": "Not set",
         "pressKeys": "請按鍵...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "播放位置",
     "resetSetting": "將{{setting}}重設為預設值",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "載入中...",
     "delete": "刪除",
     "close": "關閉",

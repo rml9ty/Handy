@@ -486,6 +486,9 @@ mod imp {
                 if id == "transcribe_slash_command" && !settings.open_input_field {
                     continue;
                 }
+                if binding.is_unset() {
+                    continue;
+                }
 
                 match plan_fallback_binding(id, binding) {
                     ShadowPlan::Immune => immune += 1,

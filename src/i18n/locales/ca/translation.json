@@ -335,6 +335,7 @@
         "loading": "S'estan carregant les dreceres...",
         "none": "No hi ha cap drecera configurada",
         "notFound": "No s'ha trobat la drecera",
+        "notSet": "Not set",
         "pressKeys": "Premeu les tecles...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "Posició de reproducció",
     "resetSetting": "Restableix {{setting}} al valor predeterminat",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "S'està carregant...",
     "delete": "Suprimeix",
     "close": "Tanca",

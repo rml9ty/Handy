@@ -879,43 +879,42 @@ impl ShortcutAction for TranscribeAction {
                                         // UI while this paste ran.
                                         let owns_ui =
                                             || RECORDING_SESSION.load(Ordering::SeqCst) == session;
-                                        let (outcome, notice) =
-                                            match utils::paste_with_mode(
-                                                final_text,
-                                                ah_clone.clone(),
-                                                paste_mode,
-                                            ) {
-                                                Ok(()) => {
-                                                    debug!(
-                                                        "Text pasted successfully in {:?}",
-                                                        paste_time.elapsed()
+                                        let (outcome, notice) = match utils::paste_with_mode(
+                                            final_text,
+                                            ah_clone.clone(),
+                                            paste_mode,
+                                        ) {
+                                            Ok(()) => {
+                                                debug!(
+                                                    "Text pasted successfully in {:?}",
+                                                    paste_time.elapsed()
+                                                );
+                                                // Leave a newer session's notice alone.
+                                                if owns_ui() {
+                                                    notices::clear(
+                                                        &ah_clone,
+                                                        NoticeSource::Dictation,
                                                     );
-                                                    // Leave a newer session's notice alone.
-                                                    if owns_ui() {
-                                                        notices::clear(
-                                                            &ah_clone,
-                                                            NoticeSource::Dictation,
-                                                        );
-                                                    }
-                                                    let notice = post_process_failed.then(|| {
-                                                        Notice::new(
-                                                            NoticeCode::PostProcessFailed,
-                                                            NoticeSource::Dictation,
-                                                        )
-                                                    });
-                                                    (TranscriptionOutcome::Typed, notice)
                                                 }
-                                                Err(e) => {
-                                                    error!("Failed to paste transcription: {}", e);
-                                                    (
-                                                        TranscriptionOutcome::Failed,
-                                                        Some(Notice::new(
-                                                            NoticeCode::PasteFailed,
-                                                            NoticeSource::Dictation,
-                                                        )),
+                                                let notice = post_process_failed.then(|| {
+                                                    Notice::new(
+                                                        NoticeCode::PostProcessFailed,
+                                                        NoticeSource::Dictation,
                                                     )
-                                                }
-                                            };
+                                                });
+                                                (TranscriptionOutcome::Typed, notice)
+                                            }
+                                            Err(e) => {
+                                                error!("Failed to paste transcription: {}", e);
+                                                (
+                                                    TranscriptionOutcome::Failed,
+                                                    Some(Notice::new(
+                                                        NoticeCode::PasteFailed,
+                                                        NoticeSource::Dictation,
+                                                    )),
+                                                )
+                                            }
+                                        };
                                         match (owns_ui(), notice) {
                                             (true, Some(notice)) => {
                                                 notices::raise(&ah_clone, notice)

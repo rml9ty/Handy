@@ -335,6 +335,7 @@
         "loading": "Завантаження скорочень...",
         "none": "Скорочення не налаштовані",
         "notFound": "Скорочення не знайдено",
+        "notSet": "Not set",
         "pressKeys": "Натисніть клавіші...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "Позиція відтворення",
     "resetSetting": "Відновити значення за замовчуванням: {{setting}}",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "Завантаження...",
     "delete": "Видалити",
     "close": "Закрити",

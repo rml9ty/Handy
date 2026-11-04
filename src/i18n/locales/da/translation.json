@@ -335,6 +335,7 @@
         "loading": "Indlæser genveje...",
         "none": "Ingen genveje konfigureret",
         "notFound": "Genvej ikke fundet",
+        "notSet": "Not set",
         "pressKeys": "Tryk på ønskede taster...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "Afspilningsposition",
     "resetSetting": "Nulstil {{setting}} til standardværdien",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "Indlæser...",
     "delete": "Slet",
     "close": "Luk",

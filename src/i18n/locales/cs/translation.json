@@ -335,6 +335,7 @@
         "loading": "Načítám zkratky...",
         "none": "Žádné zkratky nejsou nastavené",
         "notFound": "Zkratka nenalezena",
+        "notSet": "Not set",
         "pressKeys": "Stiskněte klávesy...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "Pozice přehrávání",
     "resetSetting": "Obnovit výchozí hodnotu: {{setting}}",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "Načítání...",
     "delete": "Smazat",
     "close": "Zavřít",

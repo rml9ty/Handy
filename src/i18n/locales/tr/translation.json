@@ -335,6 +335,7 @@
         "loading": "Kısayollar yükleniyor...",
         "none": "Kısayol yapılandırılmadı",
         "notFound": "Kısayol bulunamadı",
+        "notSet": "Not set",
         "pressKeys": "Tuşlara basın...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "Oynatma konumu",
     "resetSetting": "{{setting}} ayarını varsayılan değere sıfırla",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "Yükleniyor...",
     "delete": "Sil",
     "close": "Kapat",

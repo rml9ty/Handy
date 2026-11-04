@@ -11,6 +11,9 @@ The fork is kept as a small stack of commits on top of official `main`:
      updater `pubkey` -> this fork's key, Windows `signCommand` removed
    - `.github/workflows/fork-release.yml`
 3. this file
+4. `feat: remove a shortcut with the X button` (empty binding = shortcut off;
+   register/unregister skip it in `tauri_impl.rs`, `handy_keys.rs`,
+   `secure_input.rs`; `change_binding` accepts ""; UI in `ShortcutInput.tsx`)
 
 ## Updating to a new official Handy version
 

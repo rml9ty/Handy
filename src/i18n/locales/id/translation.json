@@ -335,6 +335,7 @@
         "loading": "Memuat pintasan...",
         "none": "Belum ada pintasan yang diatur",
         "notFound": "Pintasan tidak ditemukan",
+        "notSet": "Not set",
         "pressKeys": "Tekan tombol...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "Posisi pemutaran",
     "resetSetting": "Atur ulang {{setting}} ke nilai bawaan",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "Memuat...",
     "delete": "Hapus",
     "close": "Tutup",

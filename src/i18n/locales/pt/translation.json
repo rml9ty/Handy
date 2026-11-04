@@ -335,6 +335,7 @@
         "loading": "Carregando atalhos...",
         "none": "Nenhum atalho configurado",
         "notFound": "Atalho não encontrado",
+        "notSet": "Not set",
         "pressKeys": "Pressione as teclas...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "Posição de reprodução",
     "resetSetting": "Redefinir {{setting}} para o padrão",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "Carregando...",
     "delete": "Excluir",
     "close": "Fechar",

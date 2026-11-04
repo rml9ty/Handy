@@ -335,6 +335,7 @@
         "loading": "Зареждане на бързите клавиши...",
         "none": "Няма настроени бързи клавиши",
         "notFound": "Бързият клавиш не е намерен",
+        "notSet": "Not set",
         "pressKeys": "Натиснете клавишите...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "Позиция на възпроизвеждане",
     "resetSetting": "Възстановяване на стойността по подразбиране за {{setting}}",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "Зареждане...",
     "delete": "Изтриване",
     "close": "Затваряне",

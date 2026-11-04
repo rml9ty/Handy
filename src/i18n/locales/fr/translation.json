@@ -335,6 +335,7 @@
         "loading": "Chargement des raccourcis...",
         "none": "Aucun raccourci configuré",
         "notFound": "Raccourci non trouvé",
+        "notSet": "Not set",
         "pressKeys": "Appuyez sur les touches...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "Position de lecture",
     "resetSetting": "Rétablir la valeur par défaut de {{setting}}",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "Chargement...",
     "delete": "Supprimer",
     "close": "Fermer",

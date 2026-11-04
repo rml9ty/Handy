@@ -1,4 +1,5 @@
 import React, { useRef } from "react";
+import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatKeyCombination } from "../../lib/utils/keyboard";
 import { ResetButton } from "../ui/ResetButton";
@@ -26,7 +27,8 @@ export const ShortcutInput: React.FC<ShortcutInputProps> = ({
   disabled = false,
 }) => {
   const { t } = useTranslation();
-  const { getSetting, resetBinding, isUpdating, isLoading } = useSettings();
+  const { getSetting, updateBinding, resetBinding, isUpdating, isLoading } =
+    useSettings();
   const osType = useOsType();
   const { capturing, partial, start, cancel } = useShortcutCapture(
     shortcutId,
@@ -120,8 +122,23 @@ export const ShortcutInput: React.FC<ShortcutInputProps> = ({
             className="px-2 py-1 text-sm font-semibold bg-wash border border-line-strong hover:bg-logo-primary/10 rounded-md cursor-pointer hover:border-logo-primary"
             onClick={start}
           >
-            {formatKeyCombination(binding.current_binding, osType)}
+            {binding.current_binding.trim()
+              ? formatKeyCombination(binding.current_binding, osType)
+              : t("settings.general.shortcut.notSet")}
           </div>
+        )}
+        {binding.current_binding.trim() && (
+          <ResetButton
+            ariaLabel={t("common.removeShortcut", { setting: translatedName })}
+            onClick={() =>
+              updateBinding(shortcutId, "").catch((e) =>
+                console.error(`Failed to remove shortcut ${shortcutId}:`, e),
+              )
+            }
+            disabled={capturing || isUpdating(`binding_${shortcutId}`)}
+          >
+            <X className="w-5 h-5" />
+          </ResetButton>
         )}
         <ResetButton
           ariaLabel={t("common.resetSetting", { setting: translatedName })}

@@ -335,6 +335,7 @@
         "loading": "Tastenkürzel werden geladen...",
         "none": "Keine Tastenkürzel konfiguriert",
         "notFound": "Tastenkürzel nicht gefunden",
+        "notSet": "Nicht festgelegt",
         "pressKeys": "Tasten drücken...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "Wiedergabeposition",
     "resetSetting": "{{setting}} auf den Standardwert zurücksetzen",
+    "removeShortcut": "Tastenkürzel {{setting}} entfernen",
     "loading": "Wird geladen...",
     "delete": "Löschen",
     "close": "Schließen",

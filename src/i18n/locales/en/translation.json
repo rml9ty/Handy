@@ -335,6 +335,7 @@
         "loading": "Loading shortcuts...",
         "none": "No shortcuts configured",
         "notFound": "Shortcut not found",
+        "notSet": "Not set",
         "pressKeys": "Press keys...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "Playback position",
     "resetSetting": "Reset {{setting}} to default",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "Loading...",
     "delete": "Delete",
     "close": "Close",

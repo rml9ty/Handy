@@ -335,6 +335,7 @@
         "loading": "Sneltoetsen laden...",
         "none": "Geen sneltoetsen geconfigureerd",
         "notFound": "Sneltoets niet gevonden",
+        "notSet": "Not set",
         "pressKeys": "Druk op toetsen...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "Afspeelpositie",
     "resetSetting": "{{setting}} terugzetten naar de standaardwaarde",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "Laden...",
     "delete": "Verwijderen",
     "close": "Sluiten",

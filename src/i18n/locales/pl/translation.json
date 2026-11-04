@@ -335,6 +335,7 @@
         "loading": "Wczytywanie skrótów...",
         "none": "Brak skonfigurowanych skrótów",
         "notFound": "Nie znaleziono skrótu",
+        "notSet": "Not set",
         "pressKeys": "Naciśnij klawisze...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "Pozycja odtwarzania",
     "resetSetting": "Przywróć wartość domyślną: {{setting}}",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "Wczytywanie...",
     "delete": "Usuń",
     "close": "Zamknij",

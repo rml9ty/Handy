@@ -335,6 +335,7 @@
         "loading": "Caricamento delle scorciatoie...",
         "none": "Nessuna scorciatoia configurata",
         "notFound": "Scorciatoia non trovata",
+        "notSet": "Not set",
         "pressKeys": "Premi i tasti...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "Posizione di riproduzione",
     "resetSetting": "Ripristina il valore predefinito di {{setting}}",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "Caricamento...",
     "delete": "Elimina",
     "close": "Chiudi",

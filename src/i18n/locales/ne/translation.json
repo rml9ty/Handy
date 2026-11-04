@@ -335,6 +335,7 @@
         "loading": "सर्टकटहरू लोड गरिँदैछन्...",
         "none": "कुनै सर्टकट सेट गरिएको छैन",
         "notFound": "सर्टकट भेटिएन",
+        "notSet": "Not set",
         "pressKeys": "किहरू थिच्नुहोस्...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "प्लेब्याकको स्थान",
     "resetSetting": "{{setting}}लाई पूर्वनिर्धारित मानमा रिसेट गर्नुहोस्",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "लोड गरिँदैछ...",
     "delete": "मेटाउनुहोस्",
     "close": "बन्द गर्नुहोस्",

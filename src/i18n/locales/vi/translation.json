@@ -335,6 +335,7 @@
         "loading": "Đang tải phím tắt...",
         "none": "Chưa cấu hình phím tắt",
         "notFound": "Không tìm thấy phím tắt",
+        "notSet": "Not set",
         "pressKeys": "Nhấn phím...",
         "bindings": {
           "transcribe": {
@@ -949,6 +950,7 @@
   "common": {
     "playbackPosition": "Vị trí phát",
     "resetSetting": "Đặt lại {{setting}} về mặc định",
+    "removeShortcut": "Remove {{setting}} shortcut",
     "loading": "Đang tải...",
     "delete": "Xóa",
     "close": "Đóng",
